@@ -3,11 +3,16 @@
 using NuGet.Configuration;
 using NuGet.Frameworks;
 using NuGet.Packaging;
+using NuGet.Packaging.Core;
 
 internal static class Program
 {
   public static void Main(string[] args)
   {
+    var target = args[0].ToLowerInvariant();
+    Console.WriteLine($"Looking for:  {target}");
+    Console.WriteLine("-------------------------");
+
     var settings = Settings.LoadDefaultSettings(null);
 
     // /home/trevorde/.nuget/packages/
@@ -18,26 +23,29 @@ internal static class Program
     // [blank]
     var repoPath = SettingsUtility.GetRepositoryPath(settings);
 
-    //var nuspecPath = Path.Combine(globPackDir, "autofac", "6.0.0", "autofac.nuspec");
-    var nuspecPath = "/home/trevorde/.nuget/packages/quikgraph/2.3.0/quikgraph.nuspec";
-    //var nuspecPath = "/home/trevorde/.nuget/packages/blazored.modal/7.0.0-preiew.2/blazored.modal.nuspec";
-    //var nuspecPath = "/home/trevorde/.nuget/packages/blazor.extensions.canvas/1.1.1/blazor.extensions.canvas.nuspec";
-    var nuspecRdr = new NuspecReader(nuspecPath);
-    var isSpec = PackageHelper.IsNuspec(nuspecPath);
-    Console.WriteLine($"{nuspecPath} --> {isSpec}");
+    var nuspecDir = Path.Combine(globPackDir, target);
+    var nuspecVerDirs = Directory.EnumerateDirectories(nuspecDir);
+    foreach (var nuspecVerDir in nuspecVerDirs)
+    {
+      var nuspecFilePath = Path.Combine(nuspecVerDir, $"{target}{PackagingCoreConstants.NuspecExtension}");
+      var nuspecPath = Path.Combine(globPackDir, target, nuspecVerDir, nuspecFilePath);
+      var nuspecRdr = new NuspecReader(nuspecPath);
+      var isSpec = PackageHelper.IsNuspec(nuspecPath);
+      Console.WriteLine($"{nuspecPath} --> {isSpec}");
 
-    Console.WriteLine($"GetDependencyGroups:");
-    Dump(nuspecRdr.GetDependencyGroups());
-    Console.WriteLine("-------------------------");
+      Console.WriteLine($"DependencyGroups:");
+      var depGrps = nuspecRdr.GetDependencyGroups();
+      Dump(depGrps);
+      Console.WriteLine("-------------------------");
 
-
-    //var archivePath = "/home/trevorde/.nuget/packages/blazorise/0.9.3.6/blazorise.0.9.3.6.nupkg";
-    var archivePath = "/home/trevorde/.nuget/packages/quikgraph/2.3.0/quikgraph.2.3.0.nupkg";
-    var isPkg = PackageHelper.IsPackageFile(archivePath, PackageSaveMode.Defaultv3);
-    Console.WriteLine($"{archivePath} --> {isPkg}");
-    var par = new PackageArchiveReader(archivePath);
-    Dump(par.GetLibItems());
-    Console.WriteLine();
+      var nuspecVer = Path.GetFileName(nuspecVerDir);
+      var archiveFilePath = Path.Combine(nuspecVerDir, $"{target}.{nuspecVer}{PackagingCoreConstants.NupkgExtension}");
+      var isPkg = PackageHelper.IsPackageFile(archiveFilePath, PackageSaveMode.Defaultv3);
+      Console.WriteLine($"{archiveFilePath} --> {isPkg}");
+      var par = new PackageArchiveReader(archiveFilePath);
+      Dump(par.GetLibItems());
+      Console.WriteLine();
+    }
   }
 
 
